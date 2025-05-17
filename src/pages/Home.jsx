@@ -1,8 +1,18 @@
-import React from 'react';
-import { FaCode, FaRocket, FaGithub, FaTerminal, FaLaptopCode } from 'react-icons/fa';
+import React, { useState } from 'react';
+import {
+  FaCode,
+  FaRocket,
+  FaGithub,
+  FaTerminal,
+  FaLaptopCode
+} from 'react-icons/fa';
 import { IoIosBarcode } from 'react-icons/io';
+import { HiMenu, HiX } from 'react-icons/hi';
 
 const Home = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const toggleMenu = () => setIsOpen(!isOpen);
+
   return (
     <div className="relative min-h-screen overflow-hidden text-white bg-gradient-to-br from-zinc-900 via-gray-950 to-zinc-800">
       {/* Background Visuals */}
@@ -13,20 +23,60 @@ const Home = () => {
       </div>
 
       {/* Navbar */}
-      <header className="w-full px-8 py-6 flex justify-between items-center bg-transparent">
+      <header className="w-full px-5 lg:px-8 py-6 flex justify-between items-center bg-transparent relative z-50">
         <div className="flex items-center gap-2 text-2xl font-bold">
           <IoIosBarcode className="text-green-400 text-3xl" />
           <span>Codinel</span>
         </div>
+
+        {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8 text-gray-400 font-medium">
           <a href="#features" className="hover:text-white transition">Features</a>
-          <a href="#editor" className="hover:text-white transition">Editor</a>
-          <a href="https://github.com" className="hover:text-white transition">GitHub</a>
+          <a href="/editor" className="hover:text-white transition">Editor</a>
+          <a href="https://github.com/Taha-Asif-313/codinel" target="_blank" className="hover:text-white transition">GitHub</a>
         </nav>
+
+        {/* Mobile Menu Toggle */}
+        <button
+          className="md:hidden text-white text-3xl"
+          onClick={toggleMenu}
+          aria-label="Toggle menu"
+        >
+          {isOpen ? <HiX /> : <HiMenu />}
+        </button>
+
+        {/* Mobile Dropdown Menu */}
+        {isOpen && (
+          <div className="absolute top-full right-5 mt-2 w-48 bg-zinc-900 border border-zinc-700 rounded-lg shadow-lg md:hidden">
+            <a
+              href="#features"
+              onClick={toggleMenu}
+              className="block px-4 py-3 text-gray-300 hover:bg-zinc-800 hover:text-white transition"
+            >
+              Features
+            </a>
+            <a
+              href="/editor"
+              onClick={toggleMenu}
+              className="block px-4 py-3 text-gray-300 hover:bg-zinc-800 hover:text-white transition"
+            >
+              Editor
+            </a>
+            <a
+              href="https://github.com/Taha-Asif-313/codinel"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={toggleMenu}
+              className="block px-4 py-3 text-gray-300 hover:bg-zinc-800 hover:text-white transition"
+            >
+              GitHub
+            </a>
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}
-      <section className="flex flex-col items-center text-center px-6 pt-20 pb-10">
+      <section className="flex flex-col items-center text-center px-5 lg:px-6 pt-20 pb-10">
         <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4">
           Build. Test. Deploy.
         </h1>
@@ -37,7 +87,9 @@ const Home = () => {
         <div className="flex gap-6 mb-10 text-green-400 text-4xl">
           <FaCode title="Code Editor" />
           <FaRocket title="Live Preview" />
-          <FaGithub title="Open Source" />
+          <a href="https://github.com/Taha-Asif-313/codinel" target="_blank" rel="noopener noreferrer">
+            <FaGithub title="Open Source" />
+          </a>
         </div>
 
         <a
