@@ -53,7 +53,7 @@ const CodeEditor = () => {
   return (
     <div className="flex flex-col md:flex-row h-screen">
     {/* Editors Section */}
-    <div className="md:w-1/2 p-4 bg-zinc-900 text-white space-y-4 overflow-auto">
+    <div className="md:w-1/2 max-md:h-full p-4 bg-zinc-900 text-white space-y-4 overflow-auto">
       <div className="flex items-center gap-1 text-lg font-bold mb-10">
         <IoIosBarcode className="text-4xl" />
         Codinel
@@ -100,7 +100,7 @@ const CodeEditor = () => {
     </div>
 
     {/* Embedded Preview */}
-    <div className="md:w-1/2 bg-white overflow-auto border-l border-gray-300">
+    <div className="md:w-1/2 max-md:hidden bg-white overflow-auto border-l border-gray-300">
       <iframe
         srcDoc={srcDoc}
         title="Preview"
