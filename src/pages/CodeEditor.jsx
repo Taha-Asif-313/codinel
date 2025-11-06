@@ -19,6 +19,7 @@ import {
   FileCode,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
+import { Link } from "react-router-dom";
 
 const CodeEditor = () => {
   const [html, setHtml] = useState(
@@ -216,13 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } backdrop-blur-xl z-50`}
       >
         <div className="flex items-center gap-2 md:gap-3">
-          <div className="relative">
+          <Link to={"/"} className="relative flex items-center gap-2">
             <Box className="w-6 h-6 md:w-7 md:h-7 text-[#00C214]" />
-            <Sparkles className="w-2.5 h-2.5 md:w-3 md:h-3 text-[#00C214] absolute -top-1 -right-1 animate-pulse" />
-          </div>
-          <span className="text-lg md:text-xl font-bold bg-gradient-to-r from-[#00C214] to-emerald-400 bg-clip-text text-transparent">
+             <span className="text-lg md:text-xl font-bold">
             Codinel
           </span>
+          </Link>
+         
           <span
             className={`hidden sm:inline text-xs px-2 py-1 rounded ${
               theme === "dark"

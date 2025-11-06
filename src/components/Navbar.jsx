@@ -20,7 +20,7 @@ const Navbar = () => {
           scrollY > 100 ? "0 4px 20px rgba(0, 194, 20, 0.1)" : "none",
       }}
     >
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex justify-between items-center">
+      <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Brand */}
         <div className="flex items-center gap-3 cursor-pointer group">
           <div className="relative">

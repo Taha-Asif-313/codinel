@@ -119,7 +119,7 @@ const Home = () => {
 
       {/* Hero Section */}
       <main id="hero" className="relative pt-28 pb-20 px-4 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto lg:px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div className="space-y-8 animate-fadeIn">
@@ -294,7 +294,7 @@ const Home = () => {
         <div className="absolute top-40 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px]" />
         <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[120px]" />
 
-        <div className="max-w-7xl mx-auto relative z-10">
+        <div className="max-w-7xl lg:px-4 mx-auto relative z-10">
           {/* Heading */}
           <div className="text-center mb-20">
             <h2 className="text-4xl md:text-5xl font-extrabold mb-4">
