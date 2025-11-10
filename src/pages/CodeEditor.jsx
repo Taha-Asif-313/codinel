@@ -20,6 +20,7 @@ import {
   Type,
   Loader2,
   ClipboardPenLine,
+  X,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { Link } from "react-router-dom";
@@ -190,7 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let i = 0;
     setIsTyping(true);
 
-    setEditorValue(""); // clear current tab
+    // ✅ clear based on active tab, not undefined
+    setEditorValue("");
 
     const interval = setInterval(() => {
       setEditorValue(currentCode.slice(0, i));
@@ -230,20 +232,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   const typeOutGeneratedCode = async (newHtml, newCss, newJs) => {
-    const chunkSize = 3; // number of characters per step
-    const delay = 0; // still almost instant
+    const delay = 0; // ms per character for smooth typing
+    const totalSteps = Math.max(newHtml.length, newCss.length, newJs.length);
 
     setHtml("");
     setCss("");
     setJs("");
-    setIsTyping(true);
 
-    const totalSteps = Math.max(newHtml.length, newCss.length, newJs.length);
-
-    for (let i = 0; i <= totalSteps; i += chunkSize) {
-      if (i < newHtml.length) setHtml(newHtml.slice(0, i));
-      if (i < newCss.length) setCss(newCss.slice(0, i));
-      if (i < newJs.length) setJs(newJs.slice(0, i));
+    for (let i = 0; i < totalSteps; i++) {
+      if (i < newHtml.length) setHtml((prev) => newHtml.slice(0, i));
+      if (i < newCss.length) setCss((prev) => newCss.slice(0, i));
+      if (i < newJs.length) setJs((prev) => newJs.slice(0, i));
       await new Promise((r) => setTimeout(r, delay));
     }
 
@@ -292,9 +291,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 </h2>
                 <button
                   onClick={() => setIsDrawerOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
+                  className="text-white text-xl leading-none"
                 >
-                  ✕
+                  <X size={22} />
                 </button>
               </div>
 
@@ -339,7 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
                     aiLoading || isTyping
                       ? "bg-gray-400 cursor-not-allowed"
-                      : "bg-[#00C214] hover:bg-[#00C214]/90 text-black"
+                      : "bg-[#00C214] hover:bg-[#00C214]/90"
                   }`}
                 >
                   {aiLoading || isTyping ? (
