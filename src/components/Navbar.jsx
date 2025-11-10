@@ -22,10 +22,9 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
         {/* Brand */}
-        <div className="flex items-center gap-3 cursor-pointer group">
+        <div className="flex items-center gap-2 cursor-pointer group">
           <div className="relative">
-            <Box className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />
-            <Sparkles className="w-4 h-4 text-primary absolute -top-1 -right-1 animate-pulse" />
+            <Box className="w-8 h-8 text-primary  transition-transform" />
           </div>
           <span className="text-2xl font-bold">
             Codinel
