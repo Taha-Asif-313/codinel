@@ -23,7 +23,11 @@ import {
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { Link } from "react-router-dom";
-import { useCodeAiAgent } from "../hooks/useCodeAiAgent";
+import {
+  generateWebsiteFromDescription,
+  useCodeAiAgent,
+} from "../hooks/useCodeAiAgent";
+import { AnimatePresence, motion } from "framer-motion";
 
 const CodeEditor = () => {
   const [html, setHtml] = useState(
@@ -70,8 +74,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const [copied, setCopied] = useState(false);
   const [isLoading, setIsLoading] = useState(false); // ✅ loading for preview
   const [isTyping, setIsTyping] = useState(false); // ✅ typing animation flag
-const { generateCode, aiLoading } = useCodeAiAgent();
-const [useInlineCss, setUseInlineCss] = useState(false);
+  const { generateCode, aiLoading } = useCodeAiAgent();
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
+
+  const tabs = [
+    { id: "html", name: "HTML", icon: Code2, color: "text-orange-400" },
+    { id: "css", name: "CSS", icon: Palette, color: "text-blue-400" },
+    { id: "js", name: "JavaScript", icon: Terminal, color: "text-yellow-400" },
+  ];
 
   useEffect(() => {
     setIsLoading(true);
@@ -179,8 +190,7 @@ const [useInlineCss, setUseInlineCss] = useState(false);
     let i = 0;
     setIsTyping(true);
 
-    // ✅ clear based on active tab, not undefined
-    setEditorValue("");
+    setEditorValue(""); // clear current tab
 
     const interval = setInterval(() => {
       setEditorValue(currentCode.slice(0, i));
@@ -189,14 +199,8 @@ const [useInlineCss, setUseInlineCss] = useState(false);
         clearInterval(interval);
         setIsTyping(false);
       }
-    }, 8);
+    }, 0);
   };
-
-  const tabs = [
-    { id: "html", name: "HTML", icon: Code2, color: "text-orange-400" },
-    { id: "css", name: "CSS", icon: Palette, color: "text-blue-400" },
-    { id: "js", name: "JavaScript", icon: Terminal, color: "text-yellow-400" },
-  ];
 
   const getEditorValue = () => {
     switch (activeTab) {
@@ -225,17 +229,28 @@ const [useInlineCss, setUseInlineCss] = useState(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const start = e.target.selectionStart;
-      const end = e.target.selectionEnd;
-      const value = e.target.value;
-      setEditorValue(value.substring(0, start) + "  " + value.substring(end));
-      setTimeout(() => {
-        e.target.selectionStart = e.target.selectionEnd = start + 2;
-      }, 0);
+  const typeOutGeneratedCode = async (newHtml, newCss, newJs) => {
+    const chunkSize = 3; // number of characters per step
+    const delay = 0; // still almost instant
+
+    setHtml("");
+    setCss("");
+    setJs("");
+    setIsTyping(true);
+
+    const totalSteps = Math.max(newHtml.length, newCss.length, newJs.length);
+
+    for (let i = 0; i <= totalSteps; i += chunkSize) {
+      if (i < newHtml.length) setHtml(newHtml.slice(0, i));
+      if (i < newCss.length) setCss(newCss.slice(0, i));
+      if (i < newJs.length) setJs(newJs.slice(0, i));
+      await new Promise((r) => setTimeout(r, delay));
     }
+
+    setHtml(newHtml);
+    setCss(newCss);
+    setJs(newJs);
+    setIsTyping(false);
   };
 
   return (
@@ -244,6 +259,107 @@ const [useInlineCss, setUseInlineCss] = useState(false);
         theme === "dark" ? "bg-black text-white" : "bg-gray-50 text-gray-900"
       }`}
     >
+      {/* ====== AI Prompt Drawer (Bottom Sheet) ====== */}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <motion.div
+            key="drawer-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="fixed inset-0 bg-black/60 flex items-end justify-center z-[9999]"
+            onClick={() => setIsDrawerOpen(false)} // close on backdrop click
+          >
+            {/* Drawer Panel */}
+            <motion.div
+              key="drawer-panel"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{
+                type: "spring",
+                stiffness: 220,
+                damping: 22,
+              }}
+              className="w-full sm:w-[500px] bg-white dark:bg-zinc-900 rounded-t-2xl p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()} // prevent close on content click
+            >
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-[#00C214]" />
+                  Generate with Codinel AI
+                </h2>
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl leading-none"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <textarea
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                placeholder="Describe your website or UI component (e.g. 'A modern landing page hero with gradient background and call-to-action button')"
+                className="w-full h-28 p-3 border rounded-lg resize-none focus:ring-2 focus:ring-[#00C214] focus:outline-none dark:bg-zinc-800 dark:border-zinc-700 dark:text-white"
+              />
+
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  onClick={() => setIsDrawerOpen(false)}
+                  className="px-4 py-2 rounded-lg border dark:border-zinc-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-zinc-800 transition"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  onClick={async () => {
+                    if (!aiPrompt.trim())
+                      return alert("Please describe your website.");
+                    setIsDrawerOpen(false);
+                    setIsTyping(true);
+
+                    const {
+                      html: newHtml,
+                      css: newCss,
+                      js: newJs,
+                    } = await generateWebsiteFromDescription(
+                      aiPrompt,
+                      generateCode
+                    );
+
+                    if (newHtml || newCss || newJs) {
+                      await typeOutGeneratedCode(newHtml, newCss, newJs);
+                    }
+
+                    setAiPrompt("");
+                  }}
+                  disabled={aiLoading || isTyping}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium ${
+                    aiLoading || isTyping
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-[#00C214] hover:bg-[#00C214]/90 text-black"
+                  }`}
+                >
+                  {aiLoading || isTyping ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>{isTyping ? "Applying..." : "Generating..."}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-4 h-4" />
+                      <span>Generate</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <header
         className={`flex items-center justify-between px-4 md:px-6 py-3 border-b ${
@@ -281,48 +397,26 @@ const [useInlineCss, setUseInlineCss] = useState(false);
             <ClipboardPenLine className="w-4 h-4 md:h-5 md:w-5" />
           </button>
 
-          {/* AI Generate Button */}
-<button
-  onClick={async () => {
-    const userPrompt = prompt("Describe what you want (e.g. 'A glassmorphic login card with Tailwind')");
-    if (!userPrompt) return;
-
-    const code = await generateCode(userPrompt, activeTab, useInlineCss);
-    if (code) {
-      setEditorValue(code);
-    }
-  }}
-  disabled={aiLoading}
-  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-    aiLoading
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-[#00C214] hover:bg-[#00C214]/90 text-black font-semibold"
-  }`}
-  title="Generate UI using AI"
->
-  {aiLoading ? (
-    <>
-      <Loader2 className="w-4 h-4 animate-spin" />
-      <span>Generating...</span>
-    </>
-  ) : (
-    <>
-      <Sparkles className="w-4 h-4" />
-      <span>AI UI</span>
-    </>
-  )}
-</button>
-
-{/* Inline CSS Toggle */}
-<label className="flex items-center gap-1 ml-2 text-xs cursor-pointer select-none">
-  <input
-    type="checkbox"
-    checked={useInlineCss}
-    onChange={() => setUseInlineCss(!useInlineCss)}
-  />
-  <span>Inline CSS</span>
-</label>
-
+          {/* ====== AI Button ====== */}
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            disabled={aiLoading}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+              aiLoading ? "bg-gray-400 cursor-not-allowed" : ""
+            }`}
+            title="Generate UI using AI"
+          >
+            {aiLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 md:h-5 md:w-5" />
+              </>
+            )}
+          </button>
 
           {/* Layout Toggle - Desktop Only */}
           <button
