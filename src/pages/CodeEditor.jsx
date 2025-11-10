@@ -17,9 +17,13 @@ import {
   Copy,
   Check,
   FileCode,
+  Type,
+  Loader2,
+  ClipboardPenLine,
 } from "lucide-react";
 import Editor from "@monaco-editor/react";
 import { Link } from "react-router-dom";
+import { useCodeAiAgent } from "../hooks/useCodeAiAgent";
 
 const CodeEditor = () => {
   const [html, setHtml] = useState(
@@ -45,8 +49,10 @@ body {
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.8; }`
+  50% { opacity: 0.8; }
+}` // ← missing closing brace fixed
   );
+
   const [js, setJs] = useState(
     `// Your JavaScript code
 console.log('🎉 Codinel Editor Ready!');
@@ -62,29 +68,41 @@ document.addEventListener('DOMContentLoaded', () => {
   const [theme, setTheme] = useState("dark");
   const [layout, setLayout] = useState("horizontal");
   const [copied, setCopied] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // ✅ loading for preview
+  const [isTyping, setIsTyping] = useState(false); // ✅ typing animation flag
+const { generateCode, aiLoading } = useCodeAiAgent();
+const [useInlineCss, setUseInlineCss] = useState(false);
 
   useEffect(() => {
+    setIsLoading(true);
     const timeout = setTimeout(() => {
       const combined = `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <script src="https://cdn.tailwindcss.com"></script>
-            <style>${css}</style>
-          </head>
-          <body>
-            ${html}
-            <script>${js}<\/script>
-          </body>
-        </html>
-      `;
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>${css}</style>
+        </head>
+        <body>
+          ${html}
+          <script>${js}<\/script>
+        </body>
+      </html>
+    `;
       setSrcDoc(combined);
-    }, 500);
+    }, 0);
 
-    return () => clearTimeout(timeout);
+    return () => {
+      clearTimeout(timeout);
+      setIsLoading(false); // ✅ properly stop loading when unmounted
+    };
   }, [html, css, js]);
+
+  const handleIframeLoad = () => {
+    setTimeout(() => setIsLoading(false), 200); // ✅ stop loading after iframe loads
+  };
 
   const openFullPreview = () => {
     const full = `
@@ -156,6 +174,24 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const replayTyping = () => {
+    const currentCode = getEditorValue();
+    let i = 0;
+    setIsTyping(true);
+
+    // ✅ clear based on active tab, not undefined
+    setEditorValue("");
+
+    const interval = setInterval(() => {
+      setEditorValue(currentCode.slice(0, i));
+      i++;
+      if (i > currentCode.length) {
+        clearInterval(interval);
+        setIsTyping(false);
+      }
+    }, 8);
+  };
+
   const tabs = [
     { id: "html", name: "HTML", icon: Code2, color: "text-orange-400" },
     { id: "css", name: "CSS", icon: Palette, color: "text-blue-400" },
@@ -219,11 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
         <div className="flex items-center gap-2 md:gap-3">
           <Link to={"/"} className="relative flex items-center gap-2">
             <Box className="w-6 h-6 md:w-7 md:h-7 text-[#00C214]" />
-             <span className="text-lg md:text-xl font-bold">
-            Codinel
-          </span>
+            <span className="text-lg md:text-xl font-bold">Codinel</span>
           </Link>
-         
+
           <span
             className={`hidden sm:inline text-xs px-2 py-1 rounded ${
               theme === "dark"
@@ -236,6 +270,60 @@ document.addEventListener('DOMContentLoaded', () => {
         </div>
 
         <div className="flex items-center gap-1 md:gap-2">
+          <button
+            onClick={replayTyping}
+            disabled={isTyping || isLoading} // ✅ added isLoading
+            className={`p-2 rounded-lg transition-colors flex items-center gap-1 ${
+              theme === "dark" ? "hover:bg-white/5" : "hover:bg-gray-100"
+            } ${isTyping || isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+            title="Replay Typing Animation"
+          >
+            <ClipboardPenLine className="w-4 h-4 md:h-5 md:w-5" />
+          </button>
+
+          {/* AI Generate Button */}
+<button
+  onClick={async () => {
+    const userPrompt = prompt("Describe what you want (e.g. 'A glassmorphic login card with Tailwind')");
+    if (!userPrompt) return;
+
+    const code = await generateCode(userPrompt, activeTab, useInlineCss);
+    if (code) {
+      setEditorValue(code);
+    }
+  }}
+  disabled={aiLoading}
+  className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+    aiLoading
+      ? "bg-gray-400 cursor-not-allowed"
+      : "bg-[#00C214] hover:bg-[#00C214]/90 text-black font-semibold"
+  }`}
+  title="Generate UI using AI"
+>
+  {aiLoading ? (
+    <>
+      <Loader2 className="w-4 h-4 animate-spin" />
+      <span>Generating...</span>
+    </>
+  ) : (
+    <>
+      <Sparkles className="w-4 h-4" />
+      <span>AI UI</span>
+    </>
+  )}
+</button>
+
+{/* Inline CSS Toggle */}
+<label className="flex items-center gap-1 ml-2 text-xs cursor-pointer select-none">
+  <input
+    type="checkbox"
+    checked={useInlineCss}
+    onChange={() => setUseInlineCss(!useInlineCss)}
+  />
+  <span>Inline CSS</span>
+</label>
+
+
           {/* Layout Toggle - Desktop Only */}
           <button
             onClick={() =>
@@ -386,47 +474,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
           {/* Editor Section */}
           <div className="flex-1 overflow-hidden relative">
-           <Editor
-  height="100%"
-  width="100%"
-  language={activeTab === "html" ? "html" : activeTab === "css" ? "css" : "javascript"}
-  value={getEditorValue()}
-  onChange={(value) => setEditorValue(value || "")}
-  theme="codinel-dark" // ✅ apply your custom theme name
-  onMount={(editor, monaco) => {
-    monaco.editor.defineTheme("codinel-dark", {
-      base: "vs-dark", // start from vs-dark base
-      inherit: true,
-      rules: [
-        { token: "", background: "0D0D0D", foreground: "E4E4E4" },
-        { token: "comment", foreground: "6A9955" },
-        { token: "keyword", foreground: "C586C0" },
-        { token: "string", foreground: "CE9178" },
-        { token: "number", foreground: "B5CEA8" },
-        { token: "function", foreground: "4FC1FF" },
-        { token: "type", foreground: "4EC9B0" },
-      ],
-      colors: {
-        "editor.background": "#0D0D0D", // dark background
-        "editor.foreground": "#E4E4E4",
-        "editorCursor.foreground": "#00FF99", // your brand accent
-        "editorLineNumber.foreground": "#555",
-        "editorLineNumber.activeForeground": "#00FF99",
-        "editor.selectionBackground": "#00FF9944",
-        "editor.inactiveSelectionBackground": "#00FF9922",
-      },
-    });
-    monaco.editor.setTheme("codinel-dark");
-  }}
-  options={{
-    fontSize: 14,
-    minimap: { enabled: false },
-    smoothScrolling: true,
-    fontLigatures: true,
-    automaticLayout: true,
-  }}
-/>
-
+            <Editor
+              height="100%"
+              width="100%"
+              language={
+                activeTab === "html"
+                  ? "html"
+                  : activeTab === "css"
+                  ? "css"
+                  : "javascript"
+              }
+              value={getEditorValue()}
+              onChange={(value) => setEditorValue(value || "")}
+              theme="codinel-dark" // ✅ apply your custom theme name
+              onMount={(editor, monaco) => {
+                monaco.editor.defineTheme("codinel-dark", {
+                  base: "vs-dark", // start from vs-dark base
+                  inherit: true,
+                  rules: [
+                    { token: "", background: "0D0D0D", foreground: "E4E4E4" },
+                    { token: "comment", foreground: "6A9955" },
+                    { token: "keyword", foreground: "C586C0" },
+                    { token: "string", foreground: "CE9178" },
+                    { token: "number", foreground: "B5CEA8" },
+                    { token: "function", foreground: "4FC1FF" },
+                    { token: "type", foreground: "4EC9B0" },
+                  ],
+                  colors: {
+                    "editor.background": "#0D0D0D", // dark background
+                    "editor.foreground": "#E4E4E4",
+                    "editorCursor.foreground": "#00FF99", // your brand accent
+                    "editorLineNumber.foreground": "#555",
+                    "editorLineNumber.activeForeground": "#00FF99",
+                    "editor.selectionBackground": "#00FF9944",
+                    "editor.inactiveSelectionBackground": "#00FF9922",
+                  },
+                });
+                monaco.editor.setTheme("codinel-dark");
+              }}
+              options={{
+                fontSize: 14,
+                minimap: { enabled: false },
+                smoothScrolling: true,
+                fontLigatures: true,
+                automaticLayout: true,
+              }}
+            />
           </div>
 
           {/* Status Bar */}
@@ -456,10 +549,16 @@ document.addEventListener('DOMContentLoaded', () => {
           <div
             className={`${
               layout === "vertical" ? "h-1/2" : "h-1/2 lg:h-full lg:w-1/2"
-            } flex flex-col ${
+            } relative flex flex-col ${
               theme === "dark" ? "bg-zinc-800" : "bg-gray-100"
             }`}
           >
+            {isLoading && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 text-white z-10 backdrop-blur-sm">
+                <Loader2 className="w-6 h-6 mb-2 animate-spin text-[#00C214]" />
+                <span className="text-sm">Rendering Preview...</span>
+              </div>
+            )}
             {/* Preview Header */}
             <div
               className={`flex items-center justify-between px-4 py-2 border-b ${
@@ -492,8 +591,9 @@ document.addEventListener('DOMContentLoaded', () => {
               <iframe
                 srcDoc={srcDoc}
                 title="Preview"
-                sandbox="allow-scripts allow-modals"
-                className="w-full h-full border-0"
+                sandbox="allow-scripts allow-modals allow-same-origin" // ✅ added same-origin
+                className="w-full h-full border-0 bg-white"
+                onLoad={handleIframeLoad}
               />
             </div>
           </div>
